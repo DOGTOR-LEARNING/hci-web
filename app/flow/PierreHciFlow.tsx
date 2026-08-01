@@ -368,7 +368,7 @@ export default function PierreHciFlow() {
     case 'preQuestionnaire':
       return (
         <QuestionnaireStep
-          title="開始前的小問卷"
+          title="開始前：你對 AI 詳解的看法"
           items={TRUST_ITEMS}
           onSubmit={(scores) => {
             data.current.preScores = scores;
@@ -418,7 +418,7 @@ export default function PierreHciFlow() {
     case 'postQuestionnaire':
       return (
         <QuestionnaireStep
-          title="結束前的小問卷"
+          title="用完之後：你現在的看法"
           items={EXPERIENCE_ITEMS}
           onSubmit={(scores) => {
             data.current.postScores = scores;

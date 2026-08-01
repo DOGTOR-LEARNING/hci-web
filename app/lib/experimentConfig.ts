@@ -69,25 +69,43 @@ export const CONTACT_INTENTS = [
   { key: 'lottery_willing', label: '我有意願參加抽獎' },
 ];
 
-export const LIKERT_LABELS = ['非常不同意', '不同意', '普通', '同意', '非常同意'];
+// 7 點量表（對齊 Kunkel et al. 2019 / McKnight 信任量表）。只標錨點與中點，
+// 中間點僅顯示數字，避免在手機比例的窄閱讀區把標籤擠爆。
+export const LIKERT_LABELS = ['非常不同意', '', '', '普通', '', '', '非常同意'];
 
-// 前測問卷：AI 詳解信任校準（5 點量表）。
-export const TRUST_ITEMS = [
-  '我認為 AI 題目詳解通常是可靠的。',
-  '即使 AI 的解釋很流暢，我仍會檢查其推理。',
-  '當 AI 與我的理解不同時，我有能力判斷哪一方較可信。',
-  '在不確定 AI 是否正確時，我會尋找更多資訊。',
+// ── 信任信念錨定題（前、後測「一字不改」重複量測，用於計算 Δtrust）────────────
+// 對應 McKnight 信任信念三面向（Kunkel et al. 2019 Fig.2）：
+//   [0] 能力 competence／[1] 誠信 integrity／[2] 善意 benevolence
+// 措辭刻意採「現在式的信念」，前測讀作「事前預期」、後測讀作「經驗後判斷」，
+// 兩處完全相同才可比較。前後題序、文字必須保持一致，勿只改單邊。
+export const TRUST_BELIEF_ANCHORS = [
+  '我認為這個 AI 有能力對題目給出正確的詳解。', // competence
+  '我認為這個 AI 的詳解是誠實呈現的，不會刻意誤導我。', // integrity
+  '我認為這個 AI 的詳解是為了幫助我學會，而不是別的目的。', // benevolence
 ];
 
-// 後測問卷：困惑、可靠性感受、持續使用意願，以及對兩項回應特徵的偏好／可接受性／
-// 負擔（計畫書 §6.4「安全性與體驗結果」）。5 點量表。
+// 前測問卷（實驗前）：對 AI 的一般信任傾向 + 信任信念錨定題 + 查證習慣（covariate）。
+// 索引→構念：0-1 disposition／2-4 trusting-beliefs 錨定／5-6 verify-habit covariate。
+export const TRUST_ITEMS = [
+  '一般而言，我信任 AI 工具提供的資訊。', // disposition to trust AI
+  '面對不熟悉的問題，我傾向先參考 AI 給的解答。', // disposition to trust AI
+  ...TRUST_BELIEF_ANCHORS, // 錨定題（與後測 0-2 對應）
+  '即使 AI 的解釋看起來很流暢，我仍會檢查它的推理。', // verify habit（校準）
+  '當 AI 和我的理解不同時，我有能力判斷哪一方比較可信。', // verify habit（校準）
+];
+
+// 後測問卷（實驗後）：信任信念錨定題 + 信任意圖／續用 + 安全性 + 兩項操弄偏好。
+// 索引→構念：0-2 trusting-beliefs 錨定（同前測 2-4）／3-5 trusting-intentions／
+//   6-7 安全性（反向）／8-9 操弄偏好（F 點名、I 先錯再更正）。
 export const EXPERIENCE_ITEMS = [
-  '整體而言，這些 AI 詳解讓我感到困惑。',
-  '整體而言，我認為這些 AI 詳解是可靠的。',
-  '我願意在未來的學習中繼續使用這類 AI 詳解。',
-  '開頭先點名我剛才選的答案，對我是有幫助的。',
-  '開頭先出現一個錯誤答案再立刻更正，讓我更仔細閱讀後面的詳解。',
-  '這些開頭讓我覺得有負擔或被干擾。',
+  ...TRUST_BELIEF_ANCHORS, // 錨定題（與前測 2-4 對應，可算 Δtrust）
+  '未來學習時，我願意依賴這類 AI 詳解。', // trusting intention: willingness to depend
+  '我會照 AI 詳解說的方式去理解題目。', // trusting intention: follow advice
+  '我願意繼續使用這個 AI 學習產品。', // trusting intention: continued use
+  '整體而言，這些 AI 詳解讓我感到困惑。', // 安全性（反向計分）
+  '這些 AI 詳解的開頭讓我覺得有負擔或被干擾。', // 安全性（反向計分）
+  '開頭先點名我剛才選的答案，對我是有幫助的。', // 操弄偏好：F 作答連結
+  '開頭先出現一個錯誤答案再立刻更正，讓我更仔細閱讀後面的詳解。', // 操弄偏好：I 中斷
 ];
 
 // 操弄檢核（計畫書 §6.4）：確認兩項操弄是否被感知，於正式揭露前作答。

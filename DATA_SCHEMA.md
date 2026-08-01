@@ -148,13 +148,34 @@ I1 的 momentary 錯誤會避開正解 A 與參與者選的 B，因而選 **C**�
 | `eligibility_all_confirmed` | 是否勾選全部資格條件（1/0） |
 | `eligibility_items` | 資格條目原文（以 `\| ` 串接） |
 | `consent_agreed` | 是否同意知情同意（1/0） |
-| `q_pre_{j}_score` | 前測信任量表第 j 題分數（1~5 Likert） |
-| `q_post_{j}_score` | 後測體驗量表第 j 題分數（1~5 Likert） |
+| `q_pre_{j}_score` | 前測信任量表第 j 題分數（**1~7 Likert**，**j 由 1 起算**，見下方對應表） |
+| `q_post_{j}_score` | 後測信任量表第 j 題分數（**1~7 Likert**，**j 由 1 起算**，見下方對應表） |
 | `manip_{key}` | 操弄檢核單選題答案，key = `mentioned_my_option`（是否察覺開頭提到自己選項）、`self_corrected`（是否察覺 AI 自我修正）。值為所選文字 |
 | `manip_made_me_recheck` | 「最容易讓我重新檢查的開頭」複選（以 `\| ` 串接） |
 | `phase_{section}_correct` / `_total` / `_stars` / `_duration_ms` | 各關（前測 / 學習任務 / 後測）成績與時長 |
 
-> 前測量表題目見 `experimentConfig.TRUST_ITEMS`（4 題）；後測見 `EXPERIENCE_ITEMS`（6 題：困惑／可靠性／續用意願／framing 偏好／不一致可接受性／負擔感）。
+> **量尺**：所有信任量表題改為 **7 點 Likert**（對齊 Kunkel et al. 2019 / McKnight），只標錨點（1＝非常不同意、4＝普通、7＝非常同意）。題目定義見 `experimentConfig.TRUST_ITEMS` / `EXPERIENCE_ITEMS`。
+
+**前測 `q_pre_{j}`（實驗前，7 題，j 由 1 起算）欄位序號 → 構念**：
+
+| j | 構念 | 說明 |
+|:-:|---|---|
+| 1-2 | disposition | 對 AI 的一般信任傾向 |
+| **3-5** | **trusting-beliefs 錨定** | 3=能力 competence／4=誠信 integrity／5=善意 benevolence |
+| 6-7 | verify-habit（covariate） | 查證習慣 / 校準傾向 |
+
+**後測 `q_post_{j}`（實驗後，10 題，j 由 1 起算）欄位序號 → 構念**：
+
+| j | 構念 | 說明 |
+|:-:|---|---|
+| **1-3** | **trusting-beliefs 錨定** | 1=能力／2=誠信／3=善意，**與 `q_pre_3..5` 文字一字不差**，用於算 Δtrust |
+| 4-6 | trusting-intentions | 4=依賴 willingness／5=採納 follow-advice／6=續用產品 |
+| 7-8 | 安全性（**反向計分**） | 7=困惑／8=負擔被干擾，分析前需反向 |
+| 9-10 | 操弄偏好 | 9=F 作答連結「點名我的選項」有幫助／10=I 中斷「先錯再更正」讓我更仔細 |
+
+> **Δtrust 主分析**：`q_post_1..3 − q_pre_3..5`（逐面向對應：能力/誠信/善意）與其平均，即為「實驗前→後對 AI 詳解信任信念的變化」，是本次前後問卷優化的核心產出。錨定題定義於 `experimentConfig.TRUST_BELIEF_ANCHORS`，前後測共用同一常數，**勿只改單邊**。
+>
+> 註：CSV 欄位序號為 1-based（後端 `enumerate(..., start=1)`），比 `experimentConfig.ts` 陣列的 0-based 索引大 1。
 
 ### 3.2 `answers_{pid}.csv`（三關逐題基本作答，long format）
 

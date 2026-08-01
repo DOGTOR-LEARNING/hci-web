@@ -944,19 +944,20 @@ button {
   color: #fff;
 }
 
-/* Likert 5 點 */
+/* Likert 7 點（只標錨點：1 / 4 / 7） */
 .likert {
   display: flex;
-  gap: 6px;
+  gap: 4px;
   margin-top: 10px;
 }
 .likert__opt {
   flex: 1 1 0;
+  min-width: 0;
   border-radius: 10px;
   border: 1px solid var(--divider);
   background: var(--secondary);
   color: var(--text);
-  padding: 8px 2px;
+  padding: 8px 1px;
   text-align: center;
   cursor: pointer;
 }
