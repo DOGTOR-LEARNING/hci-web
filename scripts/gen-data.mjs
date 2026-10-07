@@ -65,6 +65,68 @@ const rows = parseCsv(raw).filter((r) => r.length > 1 && r.some((c) => c !== '')
 const header = rows.shift();
 const col = (name) => header.indexOf(name);
 
+// 目前研究版本：四個核心概念各有 1 道前測、2 道學習、2 道配對後測。
+// 在產生前檢查題目與配對，避免刪題後留下無法分析的後測資料。
+const required = ['level_id', 'question_id', 'pair_id', 'knowledge_point', 'question',
+  'option_a', 'option_b', 'option_c', 'option_d', 'correct_index',
+  'common_distractor_index', 'explanation_f0', 'explanation_f1_core',
+  'f1_a', 'f1_b', 'f1_c', 'f1_d'];
+for (const name of required) {
+  if (col(name) < 0) throw new Error(`題庫缺少欄位：${name}`);
+}
+const expectedCounts = { '900001': 4, '900002': 8, '900003': 8 };
+for (const [level, count] of Object.entries(expectedCounts)) {
+  const levelRows = rows.filter((r) => r[col('level_id')] === level);
+  if (levelRows.length !== count) throw new Error(`${level} 應有 ${count} 題，實際 ${levelRows.length} 題`);
+  levelRows.forEach((r, i) => {
+    if (r[col('question_id')] !== String(i + 1)) throw new Error(`${level} 題號須從 1 連續排列`);
+  });
+}
+const concepts = [...new Set(rows.map((r) => r[col('knowledge_point')]))];
+if (concepts.length !== 4) throw new Error(`應有 4 個核心概念，實際 ${concepts.length} 個`);
+for (const concept of concepts) {
+  for (const [level, count] of [['900001', 1], ['900002', 2], ['900003', 2]]) {
+    const actual = rows.filter((r) => r[col('level_id')] === level && r[col('knowledge_point')] === concept).length;
+    if (actual !== count) throw new Error(`${concept} 在 ${level} 應有 ${count} 題，實際 ${actual} 題`);
+  }
+}
+const learnPairs = new Map();
+const postPairs = new Map();
+for (const r of rows) {
+  const level = r[col('level_id')];
+  if (!(level in expectedCounts)) throw new Error(`未知關卡：${level}`);
+  const correct = Number(r[col('correct_index')]);
+  if (!Number.isInteger(correct) || correct < 0 || correct > 3) throw new Error(`正解索引錯誤：${level}/${r[col('question_id')]}`);
+  if (!r[col('question')] || ['option_a', 'option_b', 'option_c', 'option_d'].some((name) => !r[col(name)])) {
+    throw new Error(`題幹或選項缺漏：${level}/${r[col('question_id')]}`);
+  }
+  if (level === '900001') {
+    if (r[col('pair_id')]) throw new Error('前測不應有 pair_id');
+    continue;
+  }
+  const pair = r[col('pair_id')];
+  const target = level === '900002' ? learnPairs : postPairs;
+  if (!pair || target.has(pair)) throw new Error(`${level} 配對代號缺漏或重複：${pair}`);
+  target.set(pair, r);
+  if (level === '900002') {
+    const distractor = Number(r[col('common_distractor_index')]);
+    if (!Number.isInteger(distractor) || distractor < 0 || distractor > 3 || distractor === correct) {
+      throw new Error(`${pair} 常見錯誤選項索引不正確`);
+    }
+    if (['explanation_f0', 'explanation_f1_core', 'f1_a', 'f1_b', 'f1_c', 'f1_d'].some((name) => !r[col(name)])) {
+      throw new Error(`${pair} 詳解欄位缺漏`);
+    }
+  }
+}
+for (let i = 1; i <= 8; i++) {
+  const pair = `C${String(i).padStart(2, '0')}`;
+  const learn = learnPairs.get(pair);
+  const post = postPairs.get(pair);
+  if (!learn || !post || learn[col('knowledge_point')] !== post[col('knowledge_point')]) {
+    throw new Error(`${pair} 學習與後測配對不完整或概念不同`);
+  }
+}
+
 const optInt = (v) => {
   const s = (v ?? '').trim();
   if (s === '') return undefined;

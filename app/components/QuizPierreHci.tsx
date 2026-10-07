@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { ArrowLeft, CheckCircle2, XCircle } from 'lucide-react';
 import Markdown from './Markdown';
 import { assignCells, type CellAssignment } from '../lib/condition';
@@ -8,7 +8,7 @@ import { buildInterruptionOpening, buildFramingBody } from '../lib/openings';
 import { InteractionTracker, type TrialInteraction } from '../lib/tracker';
 import type { PierreHciLevel, PierreHciQuestion } from '../data/questions';
 
-// 逐題互動紀錄：涵蓋 2 × 2 條件、送出前信心（0–100）與每題彙整互動摘要。
+// 逐題互動紀錄：涵蓋 2 × 2 條件、送出前信心（1–5）與每題彙整互動摘要。
 export type AnswerRecord = {
   questionIndex: number;
   questionId: string;
@@ -27,7 +27,7 @@ export type AnswerRecord = {
   firstI1: boolean;
   i1ExposureCount: number;
   postFirstI1: boolean;
-  // 送出前原始作答信心（0–100；未收集則 null）。計畫書 §6.4。
+  // 送出前原始作答信心（1–5；未收集則 null）。
   confidence: number | null;
   // 基本作答計時／點擊。
   answerDurationMs: number;
@@ -55,7 +55,7 @@ type Props = {
   experimentId: string;
   /** 版本平衡偏移。 */
   subjectOffset?: number;
-  /** 是否於送出前收集 0–100 分作答信心。 */
+  /** 是否於送出前收集 1–5 分作答信心。 */
   collectConfidence?: boolean;
   onBack?: () => void;
   onFinish?: (result: QuizFinishResult) => void | Promise<void>;
@@ -64,9 +64,6 @@ type Props = {
   /** 流水線模式：完成時直接把結果交給流程頁，不顯示結果彈窗、不自行上傳。 */
   reportToFlow?: boolean;
 };
-
-const TYPING_MS = 20;
-const OPTION_STAGGER_MS = 200;
 
 // 送出前信心量表（1~5，點選）。
 const CONFIDENCE_LABELS = ['非常不確定', '不太確定', '普通', '蠻確定', '非常確定'];
@@ -106,20 +103,16 @@ export default function QuizPierreHci({
   const [confidence, setConfidence] = useState<number | null>(null);
   const [isCorrect, setIsCorrect] = useState<boolean | null>(null);
   const [correctCount, setCorrectCount] = useState(0);
-  // 按下「確認答案」後短暫的「確認答案並生成詳解」動畫（僅學習任務）。
-  const [generating, setGenerating] = useState(false);
-  const genTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
-
-  // 打字機動畫狀態
-  const [displayed, setDisplayed] = useState('');
-  const [typing, setTyping] = useState(false);
-  const [revealed, setRevealed] = useState(0);
+  const [breakPending, setBreakPending] = useState(false);
+  const [thinking, setThinking] = useState(false);
+  const thinkingRef = useRef(false);
+  const thinkingTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const thinkingOverlayRef = useRef<HTMLDivElement | null>(null);
 
   const [result, setResult] = useState<QuizFinishResult | null>(null);
   const [submitState, setSubmitState] = useState<SubmitState>('idle');
 
   const answersRef = useRef<AnswerRecord[]>([]);
-  const typeToken = useRef(0);
   const questionShownAt = useRef<number | null>(null);
   const sessionStart = useRef<number>(Date.now());
   const startedAt = useRef<string>(new Date().toISOString());
@@ -127,7 +120,6 @@ export default function QuizPierreHci({
   // 當前題目的即時點擊指標（每題重置）。
   const firstClickMs = useRef<number | null>(null);
   const optionChangeCount = useRef(0);
-  const skippedTyping = useRef(false);
 
   // 互動追蹤器（每個學習試次一個）與區域 ref。
   const trackerRef = useRef<InteractionTracker | null>(null);
@@ -141,49 +133,26 @@ export default function QuizPierreHci({
   const q: PierreHciQuestion | undefined = questions[index];
   const isLast = index >= questions.length - 1;
 
-  const resetQuestionMetrics = () => {
+  // 題目與選項立即顯示；休息頁不計入下一題作答時間。
+  useEffect(() => {
+    if (!q || breakPending) return;
     firstClickMs.current = null;
     optionChangeCount.current = 0;
-    skippedTyping.current = false;
-  };
-
-  // 打字機動畫：題目逐字出現後，選項依序浮現。
-  const runTyping = useCallback(
-    async (text: string) => {
-      const token = ++typeToken.current;
-      questionShownAt.current = null;
-      resetQuestionMetrics();
-      setTyping(true);
-      setDisplayed('');
-      setRevealed(0);
-
-      for (let i = 0; i <= text.length; i++) {
-        if (token !== typeToken.current) return;
-        setDisplayed(text.slice(0, i));
-        // eslint-disable-next-line no-await-in-loop
-        await new Promise((r) => setTimeout(r, TYPING_MS));
-      }
-      if (token !== typeToken.current) return;
-      setTyping(false);
-      questionShownAt.current = Date.now();
-
-      const optionCount = Math.min(questions[index]?.options.length ?? 0, 4);
-      for (let i = 1; i <= optionCount; i++) {
-        if (token !== typeToken.current) return;
-        setRevealed(i);
-        // eslint-disable-next-line no-await-in-loop
-        await new Promise((r) => setTimeout(r, OPTION_STAGGER_MS));
-      }
-    },
-    [index, questions],
-  );
+    questionShownAt.current = Date.now();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [index, breakPending]);
 
   useEffect(() => {
-    if (!q) return;
-    runTyping(q.question);
-    // 只在題目切換時觸發
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [index]);
+    if (!thinking) return;
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    thinkingOverlayRef.current?.focus();
+    return () => { document.body.style.overflow = previousOverflow; };
+  }, [thinking]);
+
+  useEffect(() => () => {
+    if (thinkingTimer.current) clearTimeout(thinkingTimer.current);
+  }, []);
 
   // 學習試次：作答後條件化開頭＋共同正確詳解顯示時，啟動互動追蹤器。
   useEffect(() => {
@@ -205,27 +174,8 @@ export default function QuizPierreHci({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [index, isCorrect, isLearning]);
 
-  // 卸載時清掉未觸發的生成動畫計時器。
-  useEffect(
-    () => () => {
-      if (genTimer.current) clearTimeout(genTimer.current);
-    },
-    [],
-  );
-
-  // 點題目卡片：跳過打字動畫。
-  const skipTyping = () => {
-    if (!typing || !q) return;
-    typeToken.current++;
-    skippedTyping.current = true;
-    setTyping(false);
-    setDisplayed(q.question);
-    setRevealed(q.options.length);
-    if (questionShownAt.current === null) questionShownAt.current = Date.now();
-  };
-
   const handleSelect = (i: number) => {
-    if (isCorrect !== null) return;
+    if (isCorrect !== null || thinkingRef.current) return;
     if (selected === null) {
       firstClickMs.current = questionShownAt.current ? Date.now() - questionShownAt.current : 0;
     } else if (i !== selected) {
@@ -235,26 +185,25 @@ export default function QuizPierreHci({
   };
 
   const confirmAnswer = () => {
-    if (selected === null || !q || isCorrect !== null || generating) return;
+    if (selected === null || !q || isCorrect !== null || thinkingRef.current) return;
     if (collectConfidence && confidence === null) return;
     const answerIsCorrect = selected === q.correctIndex;
-    // 作答時長於「按下確認」的當下計算（不含之後的生成動畫時間）。
+    // 作答時長於「按下確認」的當下計算。
     const durationMs = questionShownAt.current ? Date.now() - questionShownAt.current : 0;
 
-    const reveal = () => {
+    if (isLearning) {
+      thinkingRef.current = true;
+      setThinking(true);
+      thinkingTimer.current = setTimeout(() => {
+        thinkingTimer.current = null;
+        thinkingRef.current = false;
+        setThinking(false);
+        setIsCorrect(answerIsCorrect);
+        if (answerIsCorrect) setCorrectCount((c) => c + 1);
+      }, 1500);
+    } else {
       setIsCorrect(answerIsCorrect);
       if (answerIsCorrect) setCorrectCount((c) => c + 1);
-    };
-    // 學習任務：先播 1.2 秒「確認答案並生成詳解」動畫，再揭示正誤與 AI 詳解。
-    if (isLearning) {
-      setGenerating(true);
-      genTimer.current = setTimeout(() => {
-        genTimer.current = null;
-        setGenerating(false);
-        reveal();
-      }, 1200);
-    } else {
-      reveal();
     }
 
     const cell = isLearning ? cells[index] : null;
@@ -279,7 +228,7 @@ export default function QuizPierreHci({
       answerDurationMs: durationMs,
       firstOptionClickMs: firstClickMs.current,
       optionChangeCount: optionChangeCount.current,
-      skippedTyping: skippedTyping.current,
+      skippedTyping: false,
       interaction: null,
     });
   };
@@ -297,6 +246,8 @@ export default function QuizPierreHci({
   const goNext = () => {
     captureInteraction();
     onCheckpoint?.([...answersRef.current]);
+    if (isLearning && questions.length === 8 && index === 3) setBreakPending(true);
+    questionShownAt.current = null;
     setIndex((i) => i + 1);
     setSelected(null);
     setConfidence(null);
@@ -331,14 +282,15 @@ export default function QuizPierreHci({
   };
 
   const restart = () => {
-    typeToken.current++;
+    if (thinkingTimer.current) clearTimeout(thinkingTimer.current);
+    thinkingTimer.current = null;
+    thinkingRef.current = false;
+    setThinking(false);
     answersRef.current = [];
-    resetQuestionMetrics();
-    if (genTimer.current) {
-      clearTimeout(genTimer.current);
-      genTimer.current = null;
-    }
-    setGenerating(false);
+    firstClickMs.current = null;
+    optionChangeCount.current = 0;
+    questionShownAt.current = Date.now();
+    setBreakPending(false);
     trackerRef.current?.dispose();
     trackerRef.current = null;
     sessionStart.current = Date.now();
@@ -350,10 +302,24 @@ export default function QuizPierreHci({
     setConfidence(null);
     setIsCorrect(null);
     setIndex(0);
-    if (questions[0]) runTyping(questions[0].question);
   };
 
   if (!q) return null;
+
+  if (breakPending) {
+    return (
+      <div className="phone">
+        <div className="appbar"><span className="appbar__title">{sectionTitle}</span></div>
+        <div className="scroll break-card">
+          <div className="flow-h">已完成一半</div>
+          <p>你已完成 4 題學習題。可以稍作休息，準備好後再繼續剩下的 4 題。</p>
+        </div>
+        <div className="bottombar">
+          <button className="btn btn--primary" onClick={() => setBreakPending(false)}>繼續作答</button>
+        </div>
+      </div>
+    );
+  }
 
   const okClass = isCorrect ? 'ok' : 'no';
   const canConfirm = selected !== null && (!collectConfidence || confidence !== null);
@@ -372,7 +338,7 @@ export default function QuizPierreHci({
     <div className="phone" ref={phoneRef}>
       {/* 頂部列 */}
       <div className="appbar">
-        <button className="appbar__back" onClick={() => onBack?.()} aria-label="返回">
+        <button className="appbar__back" onClick={() => onBack?.()} aria-label="返回" disabled={thinking}>
           <ArrowLeft size={22} />
         </button>
         <span className="appbar__title">{sectionTitle}</span>
@@ -397,39 +363,30 @@ export default function QuizPierreHci({
 
       {/* 內容 */}
       <div className="scroll">
-        <div className="qcard" onClick={skipTyping}>
-          {typing ? (
-            <>
-              {displayed}
-              <span className="cursor">|</span>
-            </>
-          ) : (
-            q.question
-          )}
-        </div>
+        <div className="qcard">{q.question}</div>
 
         <div className="options">
           {q.options.map((opt, i) => {
             const isSel = selected === i;
             const isCorrectOption = i === q.correctIndex;
             let stateClass = '';
-            if (isCorrect !== null) {
+            if (isLearning && isCorrect !== null) {
               if (isCorrectOption) stateClass = 'correct';
               else if (isSel) stateClass = 'wrong';
             } else if (isSel) {
               stateClass = 'selected';
             }
             const mark =
-              isCorrect !== null && isCorrectOption ? (
+              isLearning && isCorrect !== null && isCorrectOption ? (
                 <CheckCircle2 size={22} />
-              ) : isCorrect !== null && isSel ? (
+              ) : isLearning && isCorrect !== null && isSel ? (
                 <XCircle size={22} />
               ) : null;
             return (
               <button
                 key={i}
-                className={`option ${revealed > i ? 'reveal' : ''} ${isSel ? 'selected' : ''} ${stateClass}`}
-                disabled={isCorrect !== null || revealed <= i}
+                className={`option reveal ${isSel ? 'selected' : ''} ${stateClass}`}
+                disabled={isCorrect !== null || thinking}
                 onClick={() => handleSelect(i)}
               >
                 <span className="option__badge">{String.fromCharCode(65 + i)}</span>
@@ -443,7 +400,7 @@ export default function QuizPierreHci({
         </div>
 
         {/* 送出前作答信心（1~5，點選），計畫書要求：送出、得知正誤前填寫 */}
-        {collectConfidence && selected !== null && isCorrect === null && !generating ? (
+        {collectConfidence && selected !== null && isCorrect === null ? (
           <div className="confidence">
             <div className="qitem__text">送出前，你有多確定這個答案？</div>
             <div className="likert">
@@ -451,7 +408,7 @@ export default function QuizPierreHci({
                 <div
                   key={j}
                   className={`likert__opt ${confidence === j + 1 ? 'on' : ''}`}
-                  onClick={() => setConfidence(j + 1)}
+                  onClick={() => { if (!thinkingRef.current) setConfidence(j + 1); }}
                 >
                   <div className="likert__num">{j + 1}</div>
                   <div className="likert__lbl">{lbl}</div>
@@ -462,9 +419,9 @@ export default function QuizPierreHci({
         ) : null}
       </div>
 
-      {/* 前測／後測純作答：答完顯示對錯輕量提示 */}
+      {/* 前測／後測僅確認已記錄，避免在學習或後測前洩漏正解。 */}
       {!isLearning && isCorrect !== null ? (
-        <div className={`testflash ${okClass}`}>{isCorrect ? '答對了！' : '答錯了！'}</div>
+        <div className="testflash">已記錄作答</div>
       ) : null}
 
       {/* 底部按鈕列 */}
@@ -472,14 +429,12 @@ export default function QuizPierreHci({
         <div className="bottombar">
           <button
             className="btn btn--primary"
-            disabled={!canConfirm || generating}
+            disabled={!canConfirm || thinking}
             onClick={confirmAnswer}
           >
-            {generating
-              ? '生成詳解中…'
-              : collectConfidence && confidence === null && selected !== null
-                ? '請先評估信心'
-                : '確認答案'}
+            {collectConfidence && confidence === null && selected !== null
+              ? '請先評估信心'
+              : '確認答案'}
           </button>
         </div>
       ) : (
@@ -521,11 +476,18 @@ export default function QuizPierreHci({
         </div>
       ) : null}
 
-      {/* 確認答案並生成詳解動畫（1.5 秒，僅學習任務） */}
-      {generating ? (
-        <div className="gen-overlay">
-          <div className="gen-spinner" />
-          <div className="gen-text">正在確認答案並生成詳解…</div>
+      {thinking ? (
+        <div
+          className="gen-overlay"
+          role="dialog"
+          aria-modal="true"
+          aria-label="AI 正在思考中"
+          tabIndex={-1}
+          ref={thinkingOverlayRef}
+          onKeyDown={(event) => event.preventDefault()}
+        >
+          <div className="gen-spinner" aria-hidden="true" />
+          <div className="gen-text">AI 正在思考中…</div>
         </div>
       ) : null}
 

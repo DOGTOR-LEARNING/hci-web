@@ -560,17 +560,20 @@ button {
   border-radius: 0 8px 8px 0;
 }
 
-/* 確認答案並生成詳解動畫 */
+/* 學習題送出後的 1.5 秒思考畫面，覆蓋整個視窗並攔截操作。 */
 .gen-overlay {
-  position: absolute;
+  position: fixed;
   inset: 0;
-  z-index: 15;
-  background: rgba(255, 255, 255, 0.85);
+  z-index: 100;
+  background: rgba(255, 255, 255, 0.94);
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
   gap: 16px;
+  pointer-events: auto;
+  touch-action: none;
+  cursor: progress;
 }
 .gen-spinner {
   width: 46px;
@@ -663,20 +666,14 @@ button {
 
 /* ── 歡迎／研究介紹頁 ─────────────────────────────────────────────────── */
 .welcome-hero {
-  text-align: center;
-  padding: 12px 4px 8px;
+  text-align: left;
+  padding: 8px 4px;
 }
-.hero-badge {
-  width: 72px;
-  height: 72px;
-  border-radius: 24px;
-  margin: 0 auto 14px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  color: #fff;
-  background: linear-gradient(135deg, #f4a63a, #ef8f22);
-  box-shadow: 0 8px 20px rgba(238, 159, 41, 0.35);
+.welcome-kicker {
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 700;
+  margin-bottom: 10px;
 }
 .welcome-title {
   font-size: 24px;
@@ -736,10 +733,10 @@ button {
   margin-top: 18px;
   display: flex;
   gap: 12px;
-  padding: 16px;
-  border-radius: 16px;
-  background: linear-gradient(135deg, #fff7ea, #ffedcf);
-  border: 1px solid rgba(238, 159, 41, 0.4);
+  padding: 14px;
+  border-radius: 14px;
+  background: var(--secondary);
+  border: 1px solid var(--divider);
 }
 .reward-card__icon {
   flex: 0 0 auto;
@@ -749,9 +746,8 @@ button {
   display: flex;
   align-items: center;
   justify-content: center;
-  color: #fff;
-  background: linear-gradient(135deg, #f4a63a, #ef8f22);
-  box-shadow: 0 6px 14px rgba(238, 159, 41, 0.4);
+  color: var(--muted);
+  background: var(--bg);
 }
 .reward-card__body {
   flex: 1 1 auto;
@@ -759,20 +755,20 @@ button {
 .reward-card__title {
   font-size: 15px;
   font-weight: 800;
-  color: #8a5200;
+  color: var(--text);
   margin-bottom: 4px;
 }
 .reward-card__desc {
   font-size: 13px;
   line-height: 1.6;
-  color: #6b4a12;
+  color: var(--muted);
 }
 .reward-card__desc strong {
-  color: #a35b00;
+  color: var(--text);
 }
 .reward-card__note {
   font-size: 12px;
-  color: #9b7333;
+  color: var(--muted);
   margin-top: 6px;
   line-height: 1.5;
 }
@@ -797,6 +793,29 @@ button {
   font-size: 13px;
   color: #334155;
   line-height: 1.6;
+}
+
+.example-card {
+  margin: 20px 0;
+  padding: 16px;
+  border-radius: 14px;
+  background: var(--secondary);
+  border: 1px solid var(--divider);
+  color: var(--text);
+  line-height: 1.6;
+}
+.example-card__label {
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 700;
+}
+.example-card p {
+  margin: 10px 0 0;
+}
+
+.break-card {
+  padding: 36px 24px;
+  line-height: 1.7;
 }
 
 /* 標題含圖示 */
@@ -1109,17 +1128,12 @@ button {
   margin-top: 6px;
 }
 
-/* 純測驗（前測／後測）模式：答完只顯示對錯，不顯示詳解時的輕量提示 */
+/* 純測驗（前測／後測）模式：只確認作答已記錄，不透露正解。 */
 .testflash {
   flex: 0 0 auto;
   text-align: center;
   padding: 10px 16px;
   font-size: 15px;
   font-weight: 700;
-}
-.testflash.ok {
-  color: var(--correct);
-}
-.testflash.no {
-  color: var(--wrong);
+  color: var(--muted);
 }

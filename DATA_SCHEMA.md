@@ -36,14 +36,14 @@ Email 附件三份報告 CSV                    backend/app/routers/pierre_hci.p
 
 ## 一、題庫 CSV：`data/pierre_hci_questions_v2.csv`
 
-一列 = 一題。共 30 列：前測 6、學習 12、後測 12。
+一列 = 一題。共 20 列：前測 4、學習 8、後測 8。四個核心概念各有 1 道前測、2 道學習題與 2 道後測題。
 
 | 欄位 | 說明 | 前測 900001 | 學習 900002 | 後測 900003 |
 |---|---|:--:|:--:|:--:|
 | `level_id` | 關卡代號：`900001` 前測／`900002` 學習任務／`900003` 後測 | ✅ | ✅ | ✅ |
 | `question_id` | 該關內題號（1 起算） | ✅ | ✅ | ✅ |
-| `pair_id` | 逐題配對代號（`C01`…`C12`）。**學習題與後測題以相同 pair_id 對應**，用於後測近遷移配對。前測留空 | — | ✅ | ✅ |
-| `knowledge_point` | 知識點（六類：粒子表示與守恆／原子結構與離子／分子間作用力／氣體粒子行為／化學平衡／酸鹼與緩衝） | ✅ | ✅ | ✅ |
+| `pair_id` | 逐題配對代號（`C01`…`C08`）。**學習題與後測題以相同 pair_id 對應**，用於後測近遷移配對。前測留空 | — | ✅ | ✅ |
+| `knowledge_point` | 核心概念（四類：限量反應物與粒子守恆／氫鍵與沸點／定容氣體的溫度與壓力／濃度改變後的化學平衡） | ✅ | ✅ | ✅ |
 | `question` | 題幹 | ✅ | ✅ | ✅ |
 | `option_a`~`option_d` | 四個選項文字（對應索引 0~3 / 字母 A~D） | ✅ | ✅ | ✅ |
 | `correct_index` | 正解索引（0=A、1=B、2=C、3=D） | ✅ | ✅ | ✅ |
@@ -53,7 +53,7 @@ Email 附件三份報告 CSV                    backend/app/routers/pierre_hci.p
 | `f1_a`~`f1_d` | **F1 版四個選項各自的單獨敘述**（對應 A~D）。正解為確認語，其餘為誤判說明 | — | ✅ | — |
 
 - 前測／後測只需填到 `correct_index`，其後 7 欄留空（純作答、不顯示詳解）。
-- 只有學習關（900002）需要填 `common_distractor_index` 與所有詳解欄位。
+- 只有學習關（900002）需要填 `common_distractor_index` 與所有詳解欄位。產生題庫時會驗證題數、概念分布及逐題配對。
 
 ---
 
@@ -88,7 +88,7 @@ Email 附件三份報告 CSV                    backend/app/routers/pierre_hci.p
 `app/lib/openings.ts:buildInterruptionOpening(q, selectedIndex, interruption)`：
 
 - **I0**：以 `注意！` 作為醒目提示開頭，用來**平衡** I1 自我修正帶來的注意力吸引（控制單純 salience），之後接正確推理。
-- **I1**：以自我修正作為 AI 詳解的第一句 `這題答案為 {W}……等等，這與系統衝突，正確答案是 {正解}。`（其自我修正本身即注意力機制，**不再加「注意！」**）
+- **I1**：以自我修正作為 AI 詳解的第一句 `我剛才判斷成 {W}；重新檢查後，正確答案是 {正解}。`（其自我修正本身即注意力機制，**不再加「注意！」**）
   - `{W}` = `pickI1Distractor()` 選出的 momentary 錯誤選項，規則：
     1. **必須非正解、也非參與者當下選擇**（`≠ correct_index`、`≠ selectedIndex`）。
     2. 若 `common_distractor_index` 符合上述條件則優先採用；否則取第一個符合的錯誤選項。
@@ -98,7 +98,7 @@ Email 附件三份報告 CSV                    backend/app/routers/pierre_hci.p
 
 `app/lib/condition.ts:assignCells(count, experimentId)`：
 
-- 以 `experimentId` 為種子（mulberry32），每 **4 題為一個區塊**，區塊內是四個 cell 的洗牌 → **「四種條件都出現過才會重複」**。12 題 = 3 個區塊，每個 cell 各出現 3 次。
+- 以 `experimentId` 為種子（mulberry32），每 **4 題為一個區塊**，區塊內是四個 cell 的洗牌 → **「四種條件都出現過才會重複」**。8 題 = 2 個區塊，每個 cell 各出現 2 次。
 - 額外保證**第一題為 I0**（保留一個未受不一致污染的基準）。
 - 同時計算 carryover 標記：`firstI1`（是否本人第一次遇到 I1）、`i1ExposureCount`（累積 I1 暴露次數）、`postFirstI1`（是否位於第一次 I1 之後）。
 
@@ -111,9 +111,9 @@ I1 的 momentary 錯誤會避開正解 A 與參與者選的 B，因而選 **C**�
 | cell | AI 詳解內容（連續一段） |
 |---|---|
 | `F0I0` | 注意！（接）explanation_f0（含「常見的錯誤選項是 B；…」） |
-| `F0I1` | 這題答案為 **C**……等等，這與系統衝突，正確答案是 A。（接）explanation_f0† |
+| `F0I1` | 我剛才判斷成 **C**；重新檢查後，正確答案是 A。（接）explanation_f0† |
 | `F1I0` | 注意！（接）你選擇了 B；{f1_b 對 B 的說明}。（接）explanation_f1_core |
-| `F1I1` | 這題答案為 **C**……等等，正確答案是 A。（接）你選擇了 B；{f1_b}。（接）explanation_f1_core† |
+| `F1I1` | 我剛才判斷成 **C**；重新檢查後，正確答案是 A。（接）你選擇了 B；{f1_b}。（接）explanation_f1_core† |
 
 > † **I1 去重**：I1 的開頭已宣告「正確答案是 X」，故本體開頭若以「正確答案是 X。」起始會被自動略去（`stripLeadingAnswer`），避免同一句出現兩次。
 

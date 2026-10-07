@@ -53,7 +53,7 @@ export function buildInterruptionOpening(
   if (interruption !== 'I1') return '**注意！**';
   const correctLetter = letterOf(q.correctIndex);
   const wrongLetter = letterOf(pickI1Distractor(q, selectedIndex));
-  return `這題答案為 ${wrongLetter}……等等，這與系統衝突，正確答案是 ${correctLetter}。`;
+  return `我剛才判斷成 ${wrongLetter}；重新檢查後，正確答案是 ${correctLetter}。`;
 }
 
 export type FramingBody = {

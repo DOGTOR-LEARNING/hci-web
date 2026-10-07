@@ -18,7 +18,6 @@ import {
   Info,
   Play,
   PartyPopper,
-  Sparkles,
   Gift,
   type LucideIcon,
 } from 'lucide-react';
@@ -91,16 +90,16 @@ function Checkbox({ on }: { on: boolean }) {
 // ── 歡迎／研究介紹 ─────────────────────────────────────────────────────────
 export function WelcomeStep({ onStart }: { onStart: () => void }) {
   const rows: { icon: LucideIcon; title: string; desc: string }[] = [
-    { icon: Clock, title: '大約 30 分鐘', desc: '可在安靜環境一次完成，中途離開需從頭開始。' },
+    { icon: Clock, title: '預計約 20–30 分鐘', desc: '實際時間依閱讀速度而異；請在安靜環境一次完成。' },
     {
       icon: FlaskConical,
-      title: '一項關於「AI 學習回饋」的學術研究',
-      desc: '我們想了解學生如何閱讀 AI 提供的題目詳解，用來改善教育 AI 的設計。',
+      title: '化學題目與解題說明',
+      desc: '你會作答化學選擇題，並閱讀部分題目的解題說明。',
     },
     {
       icon: ListChecks,
       title: '你會依序完成',
-      desc: '資格確認、基本資料、前測、學習任務、幾個小問題、後測與一份簡短問卷。',
+      desc: '資格確認、基本資料、簡短問卷、前測 4 題、學習 8 題、後測 8 題。',
     },
     {
       icon: ShieldCheck,
@@ -118,12 +117,10 @@ export function WelcomeStep({ onStart }: { onStart: () => void }) {
       }
     >
       <div className="welcome-hero">
-        <div className="hero-badge">
-          <Sparkles size={34} />
-        </div>
-        <div className="welcome-title">歡迎參與學習研究</div>
+        <div className="welcome-kicker">國立臺灣大學資訊管理學系・學習研究</div>
+        <div className="welcome-title">化學題目與解題說明研究</div>
         <div className="welcome-lead">
-          感謝你抽空參與！開始前，先用一分鐘了解接下來會做什麼。
+          開始前，請先了解研究流程；稍後會說明你將看到的解題文字。
         </div>
       </div>
 
@@ -142,14 +139,12 @@ export function WelcomeStep({ onStart }: { onStart: () => void }) {
       </div>
 
       <div className="reward-card">
-        <div className="reward-card__icon">
-          <Gift size={24} />
-        </div>
+        <div className="reward-card__icon"><Gift size={20} /></div>
         <div className="reward-card__body">
-          <div className="reward-card__title">完成實驗即可參加抽獎 🎁</div>
+          <div className="reward-card__title">完成後可選擇參加抽獎</div>
           <div className="reward-card__desc">
-            獎項為 <strong>500 元超商電子禮券</strong>，共抽出 <strong>3 名</strong>，將於{' '}
-            <strong>9/30</strong> 抽出並以 Email 通知得獎者。
+            獎項為 <strong>500 元超商電子禮券</strong>，共抽出 <strong>3 名</strong>；
+            得獎者將以 Email 通知。
           </div>
           <div className="reward-card__note">
             （記得在稍後的「基本資料」頁勾選抽獎意願並留下 Email，才能參加抽獎。）
@@ -164,10 +159,35 @@ export function WelcomeStep({ onStart }: { onStart: () => void }) {
         </div>
         <div className="note-card__body">
           我們是<strong>國立臺灣大學資訊管理學系</strong>的學生，研究「人與 AI 互動」。
-          生成式 AI 越來越常在學生答錯後提供詳解，但「看到詳解」不代表學生真的理解了推理。
-          你的作答與閱讀行為能幫助我們找出更好的 AI 回饋方式，讓未來的學習系統更有效、也更值得信任。
+          我們想了解人在作答後如何閱讀解題說明，以及不同呈現方式是否影響理解。
+          你的作答與閱讀行為能幫助我們改善學習系統的回饋方式。
         </div>
       </div>
+    </FlowShell>
+  );
+}
+
+// ── 前問卷前的中性說明；不透露詳解開頭的實驗條件 ──────────────────────────
+export function ExplanationIntroStep({ onNext }: { onNext: () => void }) {
+  return (
+    <FlowShell
+      title="研究說明"
+      footer={<button className="btn-block" onClick={onNext}>了解，開始填問卷</button>}
+    >
+      <StepHeading icon={FileText} title="什麼是這裡的 AI 詳解？" />
+      <p className="flow-sub">
+        作答後，學習系統可能顯示一段由 AI 協助撰寫、事先檢查的解題文字，
+        說明正確答案與判斷理由。本研究把這種文字稱為「AI 詳解」。
+      </p>
+      <div className="example-card">
+        <div className="example-card__label">與正式題目無關的例子</div>
+        <p>題目：月亮會自行發光嗎？</p>
+        <p>解題說明：不會。月亮看起來發亮，是因為它反射了太陽光。</p>
+      </div>
+      <p className="flow-sub">
+        接下來請依你目前的預期，回答對這類詳解的看法；完成題目後，
+        我們會再詢問你的實際感受。問卷沒有標準答案。
+      </p>
     </FlowShell>
   );
 }

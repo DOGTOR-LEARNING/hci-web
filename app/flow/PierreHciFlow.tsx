@@ -9,6 +9,7 @@ import { isTouchOnlyDevice } from '../lib/device';
 import { saveBuffer, clearBuffer, flushPartialBeacon } from '../lib/sessionBuffer';
 import {
   WelcomeStep,
+  ExplanationIntroStep,
   EligibilityStep,
   ConsentStep,
   DemographicsStep,
@@ -29,6 +30,7 @@ type Step =
   | 'eligibility'
   | 'consent'
   | 'demographics'
+  | 'explanationIntro'
   | 'preQuestionnaire'
   | 'preIntermission'
   | 'preTest'
@@ -53,6 +55,7 @@ const FLOW_STAGES: FlowStage[] = [
   { key: 'eligibility', label: '資格確認' },
   { key: 'consent', label: '知情同意' },
   { key: 'demographics', label: '基本資料' },
+  { key: 'explanationIntro', label: '詳解介紹' },
   { key: 'preQuestionnaire', label: '前問卷' },
   { key: 'preTest', label: '前測' },
   { key: 'learning', label: '學習任務' },
@@ -69,17 +72,18 @@ const STEP_TO_STAGE: Record<Step, number> = {
   eligibility: 1,
   consent: 2,
   demographics: 3,
-  preQuestionnaire: 4,
-  preIntermission: 5,
-  preTest: 5,
-  learnIntermission: 6,
-  learning: 6,
-  manipulation: 7,
-  postIntermission: 8,
-  postTest: 8,
-  postQuestionnaire: 9,
-  debrief: 10,
-  done: 11,
+  explanationIntro: 4,
+  preQuestionnaire: 5,
+  preIntermission: 6,
+  preTest: 6,
+  learnIntermission: 7,
+  learning: 7,
+  manipulation: 8,
+  postIntermission: 9,
+  postTest: 9,
+  postQuestionnaire: 10,
+  debrief: 11,
+  done: 12,
 };
 
 function genParticipantId(): string {
@@ -361,10 +365,12 @@ export default function PierreHciFlow() {
         <DemographicsStep
           onNext={(d) => {
             data.current.demographics = d;
-            setStep('preQuestionnaire');
+            setStep('explanationIntro');
           }}
         />
       );
+    case 'explanationIntro':
+      return <ExplanationIntroStep onNext={() => setStep('preQuestionnaire')} />;
     case 'preQuestionnaire':
       return (
         <QuestionnaireStep
