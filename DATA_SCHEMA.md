@@ -207,14 +207,14 @@ I1 的 momentary 錯誤會避開正解 A 與參與者選的 B，因而選 **C**�
 
 ### 3.3 `trials_{pid}.csv`（學習試次逐題配對互動摘要）★主要分析資料
 
-一列 = 一道**學習題**（共 12 列）。欄位順序**與 `docs/pierre_hci_trial_interaction_schema.csv` 完全一致**（後端 `_TRIAL_HEADER` 已對齊驗證）。所有互動指標皆為「每題一列」的彙整摘要，**不含游標座標或逐點軌跡**。
+一列 = 一道**學習題**（共 8 列）。欄位順序**與 `docs/pierre_hci_trial_interaction_schema.csv` 完全一致**（後端 `_TRIAL_HEADER` 已對齊驗證）。所有互動指標皆為「每題一列」的彙整摘要，**不含游標座標或逐點軌跡**。
 
 **識別與條件**
 
 | 欄位 | 說明 |
 |---|---|
 | `participant_id` | 匿名參與者代碼 |
-| `trial_id` | 學習任務內題序（1~12） |
+| `trial_id` | 學習任務內題序（1~8） |
 | `item_id` | 題目配對代號（= pair_id，`C01`…） |
 | `condition_code` | 2×2 條件（`F0I0`/`F1I0`/`F0I1`/`F1I1`） |
 | `answer_correct` | 本題是否答對（1/0） |
