@@ -90,7 +90,7 @@ function Checkbox({ on }: { on: boolean }) {
 // ── 歡迎／研究介紹 ─────────────────────────────────────────────────────────
 export function WelcomeStep({ onStart }: { onStart: () => void }) {
   const rows: { icon: LucideIcon; title: string; desc: string }[] = [
-    { icon: Clock, title: '預計約 20–30 分鐘', desc: '實際時間依閱讀速度而異；請在安靜環境一次完成。' },
+    { icon: Clock, title: '預計約 10–20 分鐘', desc: '實際時間依閱讀速度而異；請在安靜環境一次完成。' },
     {
       icon: FlaskConical,
       title: '化學題目與解題說明',
