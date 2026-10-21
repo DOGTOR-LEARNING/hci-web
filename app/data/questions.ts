@@ -265,12 +265,12 @@ export const LEVELS: Record<string, PierreHciLevel> = {
         "questionId": "1",
         "pairId": "C01",
         "knowledgePoint": "限量反應物與粒子守恆",
-        "question": "密閉容器中有 5 個 CO 分子與 3 個 O₂ 分子，反應 2CO + O₂ → 2CO₂ 完全進行。忽略其他反應，最後的粒子組成為何？",
+        "question": "密閉容器中有 6 個 CO 分子與 4 個 O₂ 分子，反應 2CO + O₂ → 2CO₂ 完全進行。忽略其他反應，最後的粒子組成為何？",
         "options": [
-          "生成 5 個 CO₂，且沒有粒子剩餘",
-          "生成 4 個 CO₂，並只剩 1 個 O₂",
-          "生成 4 個 CO₂，並剩 1 個 CO 與 1 個 O₂",
-          "生成 3 個 CO₂，並剩 2 個 CO"
+          "生成 8 個 CO₂，且沒有粒子剩餘",
+          "生成 6 個 CO₂，並剩 2 個 O₂",
+          "生成 6 個 CO₂，並剩 1 個 O₂",
+          "生成 4 個 CO₂，並剩 2 個 CO"
         ],
         "correctIndex": 2
       },
